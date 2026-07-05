@@ -1,3 +1,13 @@
+---
+title: EIK Result Hub
+emoji: 🎓
+colorFrom: green
+colorTo: gray
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # EIK Result Hub
 
 A web app for checking Pakistani education board results — single roll number or a full class list (bulk), with Excel/CSV export.
