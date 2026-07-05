@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EIK Result Hub — Board Results Checker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🎓 EIK Result Hub</h1>
+    <p>Check Pakistani board results — all in one place</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="row">
+        <div class="field">
+          <label for="board">Board</label>
+          <select id="board"></select>
+        </div>
+        <div class="field" id="examField" hidden>
+          <label for="exam">Exam / Class</label>
+          <select id="exam"></select>
+        </div>
+      </div>
+      <div id="boardNote" class="note" hidden></div>
+      <div id="captchaBox" class="captcha-box" hidden>
+        <img id="captchaImg" alt="Captcha" title="Captcha from the board's website">
+        <div class="field grow">
+          <label for="captchaInput">Captcha code (from the image)</label>
+          <input id="captchaInput" type="text" autocomplete="off" placeholder="Type the code here">
+        </div>
+        <button id="captchaRefresh" type="button" title="Load a new captcha">⟳</button>
+      </div>
+    </section>
+
+    <section class="card" id="lookupCard">
+      <div class="tabs">
+        <button class="tab active" data-tab="single">Single Result</button>
+        <button class="tab" data-tab="bulk">Bulk (full list)</button>
+      </div>
+
+      <div id="singlePane" class="pane">
+        <div class="row">
+          <div class="field grow">
+            <label for="rollNo">Roll Number</label>
+            <input id="rollNo" type="text" inputmode="numeric" placeholder="e.g. 123456" autocomplete="off">
+          </div>
+          <button id="checkBtn" class="primary">Check Result</button>
+        </div>
+        <div id="singleResult"></div>
+      </div>
+
+      <div id="bulkPane" class="pane" hidden>
+        <div class="field">
+          <label for="rollList">Roll Numbers (one per line, or comma separated)</label>
+          <textarea id="rollList" rows="6" placeholder="123456&#10;123457&#10;123458"></textarea>
+        </div>
+        <div class="row">
+          <button id="bulkBtn" class="primary">Check All</button>
+          <button id="stopBtn" hidden>Stop</button>
+          <button id="csvBtn" hidden>⬇ Download Excel/CSV</button>
+        </div>
+        <div id="bulkProgress" class="progress" hidden><div id="bulkBar"></div></div>
+        <div id="bulkStatus" class="note" hidden></div>
+        <div id="bulkResults"></div>
+      </div>
+    </section>
+
+    <section class="card" id="unsupportedCard" hidden>
+      <p id="unsupportedMsg"></p>
+      <a id="officialLink" class="primary btn-link" target="_blank" rel="noopener">Open Official Result Page ↗</a>
+    </section>
+  </main>
+
+  <footer>
+    <p>EIK Result Hub — results come live from the boards' official websites. Supported boards: direct lookup; others via official link.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
