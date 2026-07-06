@@ -34,10 +34,7 @@
       <div class="row">
         <div class="field grow">
           <label for="board">Board</label>
-          <div class="board-select">
-            <img id="boardLogo" alt="" width="34" height="34" hidden>
-            <select id="board"></select>
-          </div>
+          <select id="board"></select>
         </div>
         <div class="field grow" id="examField" hidden>
           <label for="exam">Exam / Class</label>
@@ -102,7 +99,12 @@
     <section class="section" id="upcomingSection" aria-labelledby="upcomingTitle">
       <h2 class="section-title" id="upcomingTitle">🗓️ Upcoming Results</h2>
       <div id="upcomingGrid" class="cards-grid"></div>
-      <p class="tiny">Dates are expected timelines based on previous years — the official date is always announced by the board.</p>
+      <p class="tiny">The official date and time is always announced by the board.</p>
+    </section>
+
+    <section class="section" id="newsSection" aria-labelledby="newsTitle" hidden>
+      <h2 class="section-title" id="newsTitle">📰 Result News &amp; Announcements</h2>
+      <div id="newsGrid" class="cards-grid"></div>
     </section>
   </main>
 

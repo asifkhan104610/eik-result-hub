@@ -8,14 +8,20 @@ const EXPLORE_LINKS = [
   { icon: '📝', label: 'Entry Test Prep', url: '#' },
 ];
 
-// Expected result dates (edit freely — shown in the "Upcoming Results" section)
+// Upcoming results (edit freely — shown in the "Upcoming Results" section)
 const UPCOMING_RESULTS = [
-  { icon: '📘', board: 'Punjab Boards', exam: 'Matric (SSC) Annual 2026', date: 'Expected: July–August 2026' },
-  { icon: '📗', board: 'FBISE', exam: 'SSC-II Annual 2026', date: 'Expected: August 2026' },
-  { icon: '📙', board: 'KP Boards', exam: 'Matric (SSC) Annual 2026', date: 'Expected: August 2026' },
-  { icon: '📕', board: 'BSEK Karachi', exam: 'Science Group 2026', date: 'Expected: August 2026' },
-  { icon: '📒', board: 'All Boards', exam: 'Inter (HSSC) Annual 2026', date: 'Expected: Sept–Oct 2026' },
+  { icon: '📘', board: 'Punjab Boards', exam: 'Matric (SSC) Annual 2026' },
+  { icon: '📗', board: 'FBISE', exam: 'SSC-II Annual 2026' },
+  { icon: '📙', board: 'KP Boards', exam: 'Matric (SSC) Annual 2026' },
+  { icon: '📕', board: 'BSEK Karachi', exam: 'Science Group 2026' },
+  { icon: '📒', board: 'All Boards', exam: 'Inter (HSSC) Annual 2026' },
 ];
+
+// Your WordPress site — when set, the "Result News & Announcements" section
+// shows the latest posts of that category automatically (via the WP REST API).
+// Example: WP_SITE = 'https://yoursite.com', WP_CATEGORY = 'results'
+const WP_SITE = '';
+const WP_CATEGORY = '';
 // ====== end configuration ======
 
 let BOARDS = [];
@@ -24,16 +30,6 @@ let stopBulk = false;
 let captchaSessionId = null;
 
 const $ = (id) => document.getElementById(id);
-
-// board logo via Google's favicon service (no local images needed)
-function logoUrl(website, size = 64) {
-  try {
-    const domain = new URL(website).hostname;
-    return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
-  } catch {
-    return null;
-  }
-}
 
 // ---------- init ----------
 async function init() {
@@ -57,24 +53,31 @@ async function init() {
   onBoardChange();
   renderLatestResults();
   renderUpcoming();
+  renderNews();
 }
 
-// ---------- latest / upcoming sections ----------
+// ---------- latest / upcoming / news sections ----------
+// Boards do not publish announcement dates in machine-readable form, so we
+// sort by the most recent exam year in the label (newest first).
+function latestYear(label) {
+  const years = (label.match(/(19|20)\d{2}/g) || ['0']).map(Number);
+  return Math.max(...years);
+}
+
 function renderLatestResults() {
   const grid = $('latestGrid');
-  const items = BOARDS.filter((b) => b.supported && b.exams.length);
+  const items = BOARDS.filter((b) => b.supported && b.exams.length)
+    .map((b) => ({ board: b, exam: b.exams[0] }))
+    .sort((a, z) => latestYear(z.exam.label) - latestYear(a.exam.label));
   if (!items.length) return;
-  for (const b of items) {
-    const exam = b.exams[0];
+  for (const { board: b, exam } of items) {
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'mini-card';
     card.setAttribute('aria-label', `Check ${b.name} — ${exam.label}`);
-    const img = document.createElement('img');
-    img.src = logoUrl(b.website) || '';
-    img.alt = '';
-    img.loading = 'lazy';
-    img.onerror = () => img.replaceWith(Object.assign(document.createElement('span'), { className: 'mc-emoji', textContent: '🏛️' }));
+    const emoji = document.createElement('span');
+    emoji.className = 'mc-emoji';
+    emoji.textContent = '🏛️';
     const body = document.createElement('div');
     body.className = 'mc-body';
     body.innerHTML = '<div class="mc-board"></div><div class="mc-exam"></div>';
@@ -83,7 +86,7 @@ function renderLatestResults() {
     const go = document.createElement('span');
     go.className = 'mc-go';
     go.textContent = '→';
-    card.append(img, body, go);
+    card.append(emoji, body, go);
     card.addEventListener('click', () => {
       $('board').value = b.id;
       onBoardChange();
@@ -110,9 +113,48 @@ function renderUpcoming() {
     body.innerHTML = '<div class="mc-board"></div><div class="mc-exam"></div><div class="mc-date"></div>';
     body.children[0].textContent = u.board;
     body.children[1].textContent = u.exam;
-    body.children[2].textContent = u.date;
+    body.children[2].textContent = 'Coming Soon 🔜';
     card.append(emoji, body);
     grid.appendChild(card);
+  }
+}
+
+// Latest posts from the WordPress "results" category (live dates & announcements)
+async function renderNews() {
+  if (!WP_SITE || !WP_CATEGORY) return;
+  try {
+    const base = WP_SITE.replace(/\/$/, '') + '/wp-json/wp/v2';
+    const catRes = await fetch(`${base}/categories?slug=${encodeURIComponent(WP_CATEGORY)}&_fields=id`);
+    const cats = await catRes.json();
+    if (!cats.length) return;
+    const postsRes = await fetch(`${base}/posts?categories=${cats[0].id}&per_page=6&_fields=title,link,date`);
+    const posts = await postsRes.json();
+    if (!Array.isArray(posts) || !posts.length) return;
+
+    const grid = $('newsGrid');
+    for (const p of posts) {
+      const a = document.createElement('a');
+      a.className = 'mini-card';
+      a.href = p.link;
+      a.target = '_top';
+      a.rel = 'noopener';
+      const emoji = document.createElement('span');
+      emoji.className = 'mc-emoji';
+      emoji.textContent = '📰';
+      const body = document.createElement('div');
+      body.className = 'mc-body';
+      body.innerHTML = '<div class="mc-board"></div><div class="mc-date"></div>';
+      body.children[0].innerHTML = p.title.rendered; // WP returns sanitized title HTML
+      body.children[1].textContent = new Date(p.date).toLocaleDateString('en-PK', { day: 'numeric', month: 'long', year: 'numeric' });
+      const go = document.createElement('span');
+      go.className = 'mc-go';
+      go.textContent = '→';
+      a.append(emoji, body, go);
+      grid.appendChild(a);
+    }
+    $('newsSection').hidden = false;
+  } catch {
+    // site unreachable or REST API disabled — section simply stays hidden
   }
 }
 
@@ -123,17 +165,6 @@ function currentBoard() {
 function onBoardChange() {
   const b = currentBoard();
   if (!b) return;
-
-  // board logo
-  const logo = $('boardLogo');
-  const src = logoUrl(b.website);
-  if (src) {
-    logo.src = src;
-    logo.hidden = false;
-    logo.onerror = () => { logo.hidden = true; };
-  } else {
-    logo.hidden = true;
-  }
 
   // exam dropdown
   const examField = $('examField');

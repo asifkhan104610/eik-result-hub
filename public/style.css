@@ -159,17 +159,6 @@ select:focus, input:focus, textarea:focus {
 }
 :focus-visible { outline: 3px solid rgba(18, 153, 106, 0.55); outline-offset: 2px; }
 
-.board-select { display: flex; align-items: center; gap: 8px; }
-.board-select img {
-  flex: none;
-  width: 34px; height: 34px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: #fff;
-  padding: 3px;
-  object-fit: contain;
-}
-
 button, .btn-link {
   padding: 0 22px;
   border: 1.5px solid var(--border);
@@ -341,19 +330,14 @@ details iframe { width: 100%; height: 460px; border: 1px solid var(--border); bo
   text-align: left;
   cursor: pointer;
   font-family: inherit;
+  font-size: inherit;
+  text-decoration: none;
+  color: inherit;
   transition: transform 0.12s, box-shadow 0.12s;
   width: 100%;
+  height: auto;
 }
 .mini-card:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(6, 63, 43, 0.12); background: #fff; }
-.mini-card img {
-  flex: none;
-  width: 36px; height: 36px;
-  border-radius: 9px;
-  border: 1px solid var(--border);
-  background: #fff;
-  padding: 3px;
-  object-fit: contain;
-}
 .mini-card .mc-emoji { flex: none; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; background: var(--green-50); border-radius: 9px; }
 .mini-card .mc-body { min-width: 0; }
 .mini-card .mc-board { font-size: 0.78rem; font-weight: 700; color: var(--green-800); }
