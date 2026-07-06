@@ -317,6 +317,35 @@ details iframe { width: 100%; height: 460px; border: 1px solid var(--border); bo
 /* ---------- latest / upcoming sections ---------- */
 .section { margin: 20px 0 6px; }
 .section-title { font-size: 1.05rem; font-weight: 700; color: var(--green-900); margin-bottom: 10px; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.view-all {
+  flex: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--green-700);
+  text-decoration: none;
+}
+.view-all:hover { color: var(--green-600); text-decoration: underline; }
+.badge-new {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  vertical-align: middle;
+  animation: pulse-badge 1.8s infinite;
+}
+@keyframes pulse-badge { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
+#newsGrid .mc-board {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .mini-card {
   background: var(--card);

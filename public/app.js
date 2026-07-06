@@ -144,6 +144,13 @@ async function renderNews() {
       body.innerHTML = '<div class="mc-board"></div><div class="mc-date"></div>';
       body.children[0].innerHTML = p.title.rendered; // WP returns sanitized title HTML
       body.children[1].textContent = new Date(p.date).toLocaleDateString('en-PK', { day: 'numeric', month: 'long', year: 'numeric' });
+      // fresh posts (under 14 days old) get a NEW badge
+      if (Date.now() - new Date(p.date).getTime() < 14 * 24 * 60 * 60 * 1000) {
+        const badge = document.createElement('span');
+        badge.className = 'badge-new';
+        badge.textContent = 'NEW';
+        body.children[0].appendChild(badge);
+      }
       const go = document.createElement('span');
       go.className = 'mc-go';
       go.textContent = '→';
