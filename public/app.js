@@ -1,11 +1,10 @@
 // ====== SITE CONFIGURATION — edit these for your website ======
 // Links shown after a successful result ("keep browsing" tiles).
-// Replace the # placeholders with real pages on your WordPress site.
 const EXPLORE_LINKS = [
-  { icon: '🏫', label: 'Latest Admissions', url: '#' },
-  { icon: '🎁', label: 'Scholarships', url: '#' },
-  { icon: '📄', label: 'Past Papers', url: '#' },
-  { icon: '📝', label: 'Entry Test Prep', url: '#' },
+  { icon: '🏫', label: 'Latest Admissions', url: 'https://educationinkarachi.net/admissions-update/' },
+  { icon: '🔎', label: 'Find Admission Programs', url: 'https://educationinkarachi.net/program-finder/' },
+  { icon: '📝', label: 'MDCAT / ECAT Practice Tests', url: 'https://educationinkarachi.net/practice-tests/' },
+  { icon: '📄', label: 'Build Your Free CV', url: 'https://educationinkarachi.net/free-cv-builder/' },
 ];
 
 // Upcoming results (edit freely — shown in the "Upcoming Results" section)
@@ -17,11 +16,10 @@ const UPCOMING_RESULTS = [
   { icon: '📒', board: 'All Boards', exam: 'Inter (HSSC) Annual 2026' },
 ];
 
-// Your WordPress site — when set, the "Result News & Announcements" section
-// shows the latest posts of that category automatically (via the WP REST API).
-// Example: WP_SITE = 'https://yoursite.com', WP_CATEGORY = 'results'
-const WP_SITE = '';
-const WP_CATEGORY = '';
+// Your WordPress site — the "Result News & Announcements" section shows the
+// latest posts of this category automatically (via the WP REST API).
+const WP_SITE = 'https://educationinkarachi.net';
+const WP_CATEGORY = 'latest-results';
 // ====== end configuration ======
 
 let BOARDS = [];
@@ -127,7 +125,7 @@ async function renderNews() {
     const catRes = await fetch(`${base}/categories?slug=${encodeURIComponent(WP_CATEGORY)}&_fields=id`);
     const cats = await catRes.json();
     if (!cats.length) return;
-    const postsRes = await fetch(`${base}/posts?categories=${cats[0].id}&per_page=6&_fields=title,link,date`);
+    const postsRes = await fetch(`${base}/posts?categories=${cats[0].id}&per_page=6&_fields=id,title,link,date`);
     const posts = await postsRes.json();
     if (!Array.isArray(posts) || !posts.length) return;
 
