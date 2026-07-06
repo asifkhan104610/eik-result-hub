@@ -60,11 +60,12 @@ function extractPairs(tables, text) {
   const pairs = {};
   for (const rows of tables) {
     for (const cells of rows) {
-      for (let i = 0; i + 1 < cells.length; i += 2) {
-        const k = cells[i].replace(/[:：]\s*$/, '').trim();
-        const v = cells[i + 1].trim();
-        if (k && v && k.length <= 40 && !/^\d+$/.test(k)) pairs[k] = v;
-      }
+      // only true label/value rows — wider rows are data tables, and pairing
+      // their header cells produces junk like "Sr.#: Subject"
+      if (cells.length !== 2) continue;
+      const k = cells[0].replace(/[:：]\s*$/, '').trim();
+      const v = cells[1].trim();
+      if (k && v && k.length <= 40 && !/^\d+$/.test(k)) pairs[k] = v;
     }
   }
   const re = /([A-Za-z][A-Za-z .\/()']{2,35})\s*[:：]\s*([^\n:：]{1,80})/g;

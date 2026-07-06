@@ -4,22 +4,35 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EIK Result Hub — Board Results Checker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
-    <h1>🎓 EIK Result Hub</h1>
-    <p>Check Pakistani board results — all in one place</p>
+    <div class="header-inner">
+      <div class="logo-mark">🎓</div>
+      <h1>EIK Result Hub</h1>
+      <p>Check Pakistani board results — all in one place</p>
+      <div class="hero-chips">
+        <span class="hero-chip">✓ 27 Boards</span>
+        <span class="hero-chip">✓ Live Results</span>
+        <span class="hero-chip">✓ Single &amp; Bulk</span>
+        <span class="hero-chip">✓ Excel Export</span>
+      </div>
+    </div>
   </header>
 
   <main>
     <section class="card">
+      <div class="card-title"><span class="step-dot">1</span> Select board &amp; exam</div>
       <div class="row">
-        <div class="field">
+        <div class="field grow">
           <label for="board">Board</label>
           <select id="board"></select>
         </div>
-        <div class="field" id="examField" hidden>
+        <div class="field grow" id="examField" hidden>
           <label for="exam">Exam / Class</label>
           <select id="exam"></select>
         </div>
@@ -36,6 +49,7 @@
     </section>
 
     <section class="card" id="lookupCard">
+      <div class="card-title"><span class="step-dot">2</span> Enter roll number</div>
       <div class="tabs">
         <button class="tab active" data-tab="single">Single Result</button>
         <button class="tab" data-tab="bulk">Bulk (full list)</button>
@@ -57,7 +71,7 @@
           <label for="rollList">Roll Numbers (one per line, or comma separated)</label>
           <textarea id="rollList" rows="6" placeholder="123456&#10;123457&#10;123458"></textarea>
         </div>
-        <div class="row">
+        <div class="row actions">
           <button id="bulkBtn" class="primary">Check All</button>
           <button id="stopBtn" hidden>Stop</button>
           <button id="csvBtn" hidden>⬇ Download Excel/CSV</button>
@@ -75,7 +89,8 @@
   </main>
 
   <footer>
-    <p>EIK Result Hub — results come live from the boards' official websites. Supported boards: direct lookup; others via official link.</p>
+    <p>EIK Result Hub — results come live from the boards' official websites.<br>
+       Supported boards get direct lookup; others link to their official page.</p>
   </footer>
 
   <script src="app.js"></script>

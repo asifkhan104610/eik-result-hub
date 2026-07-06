@@ -174,39 +174,34 @@ function renderResult(r) {
   const body = document.createElement('div');
   body.className = 'result-body';
 
-  // student ke normalized fields
+  // all label/value fields from the board (fall back to normalized student fields)
   const kv = document.createElement('div');
   kv.className = 'kv';
-  const labels = {
-    name: 'Name', fatherName: 'Father Name', group: 'Group', institute: 'Institute',
-    obtainedMarks: 'Obtained Marks', totalMarks: 'Total Marks', grade: 'Grade', status: 'Result/Status',
-  };
+  let kvData = r.fields && Object.keys(r.fields).length ? r.fields : null;
+  if (!kvData) {
+    const labels = {
+      name: 'Name', fatherName: 'Father Name', group: 'Group', institute: 'Institute',
+      obtainedMarks: 'Obtained Marks', totalMarks: 'Total Marks', grade: 'Grade', status: 'Result/Status',
+    };
+    kvData = {};
+    for (const [key, label] of Object.entries(labels)) {
+      if (r.student && r.student[key]) kvData[label] = r.student[key];
+    }
+  }
   let shown = 0;
-  for (const [key, label] of Object.entries(labels)) {
-    const v = r.student && r.student[key];
+  for (const [label, v] of Object.entries(kvData)) {
     if (!v) continue;
-    kv.insertAdjacentHTML('beforeend', `<div class="k">${label}</div><div class="v"></div>`);
+    kv.insertAdjacentHTML('beforeend', `<div class="k"></div><div class="v"></div>`);
+    kv.children[kv.children.length - 2].textContent = label;
     kv.lastElementChild.textContent = v;
     shown++;
   }
   if (shown) body.appendChild(kv);
 
-  // PDF-gazette jaise boards: tables nahi hoti, to saare fields hi dikha do
-  if ((!r.tables || !r.tables.length) && r.fields && Object.keys(r.fields).length) {
-    const fkv = document.createElement('div');
-    fkv.className = 'kv';
-    for (const [k, v] of Object.entries(r.fields)) {
-      fkv.insertAdjacentHTML('beforeend', `<div class="k"></div><div class="v"></div>`);
-      fkv.children[fkv.children.length - 2].textContent = k;
-      fkv.lastElementChild.textContent = v;
-    }
-    body.innerHTML = '';
-    body.appendChild(fkv);
-  }
-
-  // subject/marks tables
+  // data tables (pure label/value tables are already shown in the grid above)
   for (const rows of r.tables || []) {
     if (rows.length < 2) continue;
+    if (shown && rows.every((cells) => cells.length <= 2)) continue;
     const table = document.createElement('table');
     table.className = 'res';
     rows.forEach((cells, i) => {
