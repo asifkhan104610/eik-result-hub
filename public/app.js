@@ -1,9 +1,39 @@
+// ====== SITE CONFIGURATION — edit these for your website ======
+// Links shown after a successful result ("keep browsing" tiles).
+// Replace the # placeholders with real pages on your WordPress site.
+const EXPLORE_LINKS = [
+  { icon: '🏫', label: 'Latest Admissions', url: '#' },
+  { icon: '🎁', label: 'Scholarships', url: '#' },
+  { icon: '📄', label: 'Past Papers', url: '#' },
+  { icon: '📝', label: 'Entry Test Prep', url: '#' },
+];
+
+// Expected result dates (edit freely — shown in the "Upcoming Results" section)
+const UPCOMING_RESULTS = [
+  { icon: '📘', board: 'Punjab Boards', exam: 'Matric (SSC) Annual 2026', date: 'Expected: July–August 2026' },
+  { icon: '📗', board: 'FBISE', exam: 'SSC-II Annual 2026', date: 'Expected: August 2026' },
+  { icon: '📙', board: 'KP Boards', exam: 'Matric (SSC) Annual 2026', date: 'Expected: August 2026' },
+  { icon: '📕', board: 'BSEK Karachi', exam: 'Science Group 2026', date: 'Expected: August 2026' },
+  { icon: '📒', board: 'All Boards', exam: 'Inter (HSSC) Annual 2026', date: 'Expected: Sept–Oct 2026' },
+];
+// ====== end configuration ======
+
 let BOARDS = [];
 let bulkResults = [];
 let stopBulk = false;
 let captchaSessionId = null;
 
 const $ = (id) => document.getElementById(id);
+
+// board logo via Google's favicon service (no local images needed)
+function logoUrl(website, size = 64) {
+  try {
+    const domain = new URL(website).hostname;
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
+  } catch {
+    return null;
+  }
+}
 
 // ---------- init ----------
 async function init() {
@@ -25,6 +55,65 @@ async function init() {
   }
   sel.addEventListener('change', onBoardChange);
   onBoardChange();
+  renderLatestResults();
+  renderUpcoming();
+}
+
+// ---------- latest / upcoming sections ----------
+function renderLatestResults() {
+  const grid = $('latestGrid');
+  const items = BOARDS.filter((b) => b.supported && b.exams.length);
+  if (!items.length) return;
+  for (const b of items) {
+    const exam = b.exams[0];
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'mini-card';
+    card.setAttribute('aria-label', `Check ${b.name} — ${exam.label}`);
+    const img = document.createElement('img');
+    img.src = logoUrl(b.website) || '';
+    img.alt = '';
+    img.loading = 'lazy';
+    img.onerror = () => img.replaceWith(Object.assign(document.createElement('span'), { className: 'mc-emoji', textContent: '🏛️' }));
+    const body = document.createElement('div');
+    body.className = 'mc-body';
+    body.innerHTML = '<div class="mc-board"></div><div class="mc-exam"></div>';
+    body.firstElementChild.textContent = b.name;
+    body.lastElementChild.textContent = exam.label;
+    const go = document.createElement('span');
+    go.className = 'mc-go';
+    go.textContent = '→';
+    card.append(img, body, go);
+    card.addEventListener('click', () => {
+      $('board').value = b.id;
+      onBoardChange();
+      if (!$('examField').hidden) $('exam').value = exam.id;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      $('rollNo').focus({ preventScroll: true });
+    });
+    grid.appendChild(card);
+  }
+  $('latestSection').hidden = false;
+}
+
+function renderUpcoming() {
+  const grid = $('upcomingGrid');
+  for (const u of UPCOMING_RESULTS) {
+    const card = document.createElement('div');
+    card.className = 'mini-card';
+    card.style.cursor = 'default';
+    const emoji = document.createElement('span');
+    emoji.className = 'mc-emoji';
+    emoji.textContent = u.icon;
+    const body = document.createElement('div');
+    body.className = 'mc-body';
+    body.innerHTML = '<div class="mc-board"></div><div class="mc-exam"></div><div class="mc-date"></div>';
+    body.children[0].textContent = u.board;
+    body.children[1].textContent = u.exam;
+    body.children[2].textContent = u.date;
+    card.append(emoji, body);
+    grid.appendChild(card);
+  }
 }
 
 function currentBoard() {
@@ -34,6 +123,17 @@ function currentBoard() {
 function onBoardChange() {
   const b = currentBoard();
   if (!b) return;
+
+  // board logo
+  const logo = $('boardLogo');
+  const src = logoUrl(b.website);
+  if (src) {
+    logo.src = src;
+    logo.hidden = false;
+    logo.onerror = () => { logo.hidden = true; };
+  } else {
+    logo.hidden = true;
+  }
 
   // exam dropdown
   const examField = $('examField');
@@ -105,8 +205,12 @@ $('captchaRefresh').addEventListener('click', loadCaptcha);
 // ---------- tabs ----------
 document.querySelectorAll('.tab').forEach((t) =>
   t.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach((x) => x.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach((x) => {
+      x.classList.remove('active');
+      x.setAttribute('aria-selected', 'false');
+    });
     t.classList.add('active');
+    t.setAttribute('aria-selected', 'true');
     $('singlePane').hidden = t.dataset.tab !== 'single';
     $('bulkPane').hidden = t.dataset.tab !== 'bulk';
   })
@@ -226,6 +330,28 @@ function renderResult(r) {
     det.appendChild(iframe);
     body.appendChild(det);
   }
+
+  // keep-browsing tiles (links to the main website)
+  const explore = document.createElement('div');
+  explore.className = 'explore';
+  explore.innerHTML = '<div class="explore-title">What\'s next? Keep exploring 👇</div>';
+  const eg = document.createElement('div');
+  eg.className = 'explore-grid';
+  for (const item of EXPLORE_LINKS) {
+    const a = document.createElement('a');
+    a.className = 'explore-tile';
+    a.href = item.url;
+    a.target = '_top';
+    a.rel = 'noopener';
+    const ico = document.createElement('span');
+    ico.textContent = item.icon;
+    const lbl = document.createElement('span');
+    lbl.textContent = item.label;
+    a.append(ico, lbl);
+    eg.appendChild(a);
+  }
+  explore.appendChild(eg);
+  body.appendChild(explore);
 
   wrap.appendChild(body);
   return wrap;

@@ -3,59 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EIK Result Hub — Board Results Checker</title>
+  <title>EIK Result Hub — Check Pakistani Board Results Online</title>
+  <meta name="description" content="Check SSC, HSSC, Matric and Inter results of all Pakistani boards — FBISE, Lahore, Peshawar, Karachi and more. Live results, single or full class list, free.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <div class="header-inner">
-      <div class="logo-mark">🎓</div>
-      <h1>EIK Result Hub</h1>
-      <p>Check Pakistani board results — all in one place</p>
-      <div class="hero-chips">
-        <span class="hero-chip">✓ 27 Boards</span>
-        <span class="hero-chip">✓ Live Results</span>
-        <span class="hero-chip">✓ Single &amp; Bulk</span>
-        <span class="hero-chip">✓ Excel Export</span>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="logo-mark" aria-hidden="true">🎓</div>
+      <div class="brand-text">
+        <h1>EIK Result Hub</h1>
+        <p>Check Pakistani board results — all in one place</p>
       </div>
     </div>
   </header>
 
+  <section class="stats" aria-label="Service highlights">
+    <div class="stat"><span class="stat-icon" aria-hidden="true">🏛️</span><strong>27+</strong><span>Boards</span></div>
+    <div class="stat"><span class="stat-icon live-dot" aria-hidden="true"></span><strong>Live</strong><span>Results</span></div>
+    <div class="stat"><span class="stat-icon" aria-hidden="true">🎓</span><strong>1000s</strong><span>Students Served</span></div>
+    <div class="stat"><span class="stat-icon" aria-hidden="true">⚡</span><strong>Fast</strong><span>Search</span></div>
+  </section>
+
   <main>
-    <section class="card">
-      <div class="card-title"><span class="step-dot">1</span> Select board &amp; exam</div>
+    <section class="card" aria-labelledby="stepBoardTitle">
+      <div class="card-title" id="stepBoardTitle"><span class="step-dot" aria-hidden="true">1</span> Select board &amp; exam</div>
       <div class="row">
         <div class="field grow">
           <label for="board">Board</label>
-          <select id="board"></select>
+          <div class="board-select">
+            <img id="boardLogo" alt="" width="34" height="34" hidden>
+            <select id="board"></select>
+          </div>
         </div>
         <div class="field grow" id="examField" hidden>
           <label for="exam">Exam / Class</label>
           <select id="exam"></select>
         </div>
       </div>
-      <div id="boardNote" class="note" hidden></div>
+      <div id="boardNote" class="note" role="note" hidden></div>
       <div id="captchaBox" class="captcha-box" hidden>
-        <img id="captchaImg" alt="Captcha" title="Captcha from the board's website">
+        <img id="captchaImg" alt="Captcha image from the board's website">
         <div class="field grow">
           <label for="captchaInput">Captcha code (from the image)</label>
           <input id="captchaInput" type="text" autocomplete="off" placeholder="Type the code here">
         </div>
-        <button id="captchaRefresh" type="button" title="Load a new captcha">⟳</button>
+        <button id="captchaRefresh" type="button" title="Load a new captcha" aria-label="Load a new captcha">⟳</button>
       </div>
     </section>
 
-    <section class="card" id="lookupCard">
-      <div class="card-title"><span class="step-dot">2</span> Enter roll number</div>
-      <div class="tabs">
-        <button class="tab active" data-tab="single">Single Result</button>
-        <button class="tab" data-tab="bulk">Bulk (full list)</button>
+    <section class="card" id="lookupCard" aria-labelledby="stepRollTitle">
+      <div class="card-title" id="stepRollTitle"><span class="step-dot" aria-hidden="true">2</span> Enter roll number</div>
+      <div class="tabs" role="tablist" aria-label="Lookup mode">
+        <button class="tab active" data-tab="single" role="tab" aria-selected="true">Single Result</button>
+        <button class="tab" data-tab="bulk" role="tab" aria-selected="false">Bulk (full list)</button>
       </div>
 
-      <div id="singlePane" class="pane">
+      <div id="singlePane" class="pane" role="tabpanel">
         <div class="row">
           <div class="field grow">
             <label for="rollNo">Roll Number</label>
@@ -63,10 +70,10 @@
           </div>
           <button id="checkBtn" class="primary">Check Result</button>
         </div>
-        <div id="singleResult"></div>
+        <div id="singleResult" aria-live="polite"></div>
       </div>
 
-      <div id="bulkPane" class="pane" hidden>
+      <div id="bulkPane" class="pane" role="tabpanel" hidden>
         <div class="field">
           <label for="rollList">Roll Numbers (one per line, or comma separated)</label>
           <textarea id="rollList" rows="6" placeholder="123456&#10;123457&#10;123458"></textarea>
@@ -76,8 +83,8 @@
           <button id="stopBtn" hidden>Stop</button>
           <button id="csvBtn" hidden>⬇ Download Excel/CSV</button>
         </div>
-        <div id="bulkProgress" class="progress" hidden><div id="bulkBar"></div></div>
-        <div id="bulkStatus" class="note" hidden></div>
+        <div id="bulkProgress" class="progress" hidden aria-hidden="true"><div id="bulkBar"></div></div>
+        <div id="bulkStatus" class="note" role="status" aria-live="polite" hidden></div>
         <div id="bulkResults"></div>
       </div>
     </section>
@@ -86,6 +93,17 @@
       <p id="unsupportedMsg"></p>
       <a id="officialLink" class="primary btn-link" target="_blank" rel="noopener">Open Official Result Page ↗</a>
     </section>
+
+    <section class="section" id="latestSection" aria-labelledby="latestTitle" hidden>
+      <h2 class="section-title" id="latestTitle">📢 Latest Released Results</h2>
+      <div id="latestGrid" class="cards-grid"></div>
+    </section>
+
+    <section class="section" id="upcomingSection" aria-labelledby="upcomingTitle">
+      <h2 class="section-title" id="upcomingTitle">🗓️ Upcoming Results</h2>
+      <div id="upcomingGrid" class="cards-grid"></div>
+      <p class="tiny">Dates are expected timelines based on previous years — the official date is always announced by the board.</p>
+    </section>
   </main>
 
   <footer>
@@ -93,6 +111,6 @@
        Supported boards get direct lookup; others link to their official page.</p>
   </footer>
 
-  <script src="app.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
