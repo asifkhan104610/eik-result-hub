@@ -48,6 +48,12 @@ async function init() {
     sel.appendChild(og);
   }
   sel.addEventListener('change', onBoardChange);
+
+  // default to the board with the most recently announced result
+  const newest = BOARDS.filter((b) => b.supported && b.exams.length)
+    .sort((a, z) => latestYear(z.exams[0].label) - latestYear(a.exams[0].label))[0];
+  if (newest) sel.value = newest.id;
+
   onBoardChange();
   renderLatestResults();
   renderUpcoming();
