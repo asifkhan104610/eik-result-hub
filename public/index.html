@@ -54,36 +54,14 @@
 
     <section class="card" id="lookupCard" aria-labelledby="stepRollTitle">
       <div class="card-title" id="stepRollTitle"><span class="step-dot" aria-hidden="true">2</span> Enter roll number</div>
-      <div class="tabs" role="tablist" aria-label="Lookup mode">
-        <button class="tab active" data-tab="single" role="tab" aria-selected="true">Single Result</button>
-        <button class="tab" data-tab="bulk" role="tab" aria-selected="false">Bulk (full list)</button>
-      </div>
-
-      <div id="singlePane" class="pane" role="tabpanel">
-        <div class="row">
-          <div class="field grow">
-            <label for="rollNo">Roll Number</label>
-            <input id="rollNo" type="text" inputmode="numeric" placeholder="e.g. 123456" autocomplete="off">
-          </div>
-          <button id="checkBtn" class="primary">Check Result</button>
+      <div class="row">
+        <div class="field grow">
+          <label for="rollNo">Roll Number</label>
+          <input id="rollNo" type="text" inputmode="numeric" placeholder="e.g. 123456" autocomplete="off">
         </div>
-        <div id="singleResult" aria-live="polite"></div>
+        <button id="checkBtn" class="primary">Check Result</button>
       </div>
-
-      <div id="bulkPane" class="pane" role="tabpanel" hidden>
-        <div class="field">
-          <label for="rollList">Roll Numbers (one per line, or comma separated)</label>
-          <textarea id="rollList" rows="6" placeholder="123456&#10;123457&#10;123458"></textarea>
-        </div>
-        <div class="row actions">
-          <button id="bulkBtn" class="primary">Check All</button>
-          <button id="stopBtn" hidden>Stop</button>
-          <button id="csvBtn" hidden>⬇ Download Excel/CSV</button>
-        </div>
-        <div id="bulkProgress" class="progress" hidden aria-hidden="true"><div id="bulkBar"></div></div>
-        <div id="bulkStatus" class="note" role="status" aria-live="polite" hidden></div>
-        <div id="bulkResults"></div>
-      </div>
+      <div id="singleResult" aria-live="polite"></div>
     </section>
 
     <section class="card" id="unsupportedCard" hidden>

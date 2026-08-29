@@ -23,8 +23,6 @@ const WP_CATEGORY = 'latest-results';
 // ====== end configuration ======
 
 let BOARDS = [];
-let bulkResults = [];
-let stopBulk = false;
 let captchaSessionId = null;
 
 const $ = (id) => document.getElementById(id);
@@ -219,7 +217,6 @@ function onBoardChange() {
   if (b.supported && b.needsCaptcha) loadCaptcha();
 
   $('singleResult').innerHTML = '';
-  $('bulkResults').innerHTML = '';
 }
 
 async function loadCaptcha() {
@@ -243,20 +240,6 @@ async function loadCaptcha() {
 }
 
 $('captchaRefresh').addEventListener('click', loadCaptcha);
-
-// ---------- tabs ----------
-document.querySelectorAll('.tab').forEach((t) =>
-  t.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach((x) => {
-      x.classList.remove('active');
-      x.setAttribute('aria-selected', 'false');
-    });
-    t.classList.add('active');
-    t.setAttribute('aria-selected', 'true');
-    $('singlePane').hidden = t.dataset.tab !== 'single';
-    $('bulkPane').hidden = t.dataset.tab !== 'bulk';
-  })
-);
 
 // ---------- lookup ----------
 async function lookupOne(rollNo) {
@@ -309,13 +292,49 @@ function renderResult(r) {
     `Roll No ${r.rollNo} — error: ${r.message || 'unknown error'}`;
   wrap.appendChild(head);
 
-  if (r.status === 'notfound' && r.note) {
+  // "Not found" is usually the right answer for the wrong exam session, so
+  // explain what this board is actually serving and link to its own page.
+  if (r.status !== 'found') {
+    const b = currentBoard();
     const body = document.createElement('div');
     body.className = 'result-body';
-    body.textContent = r.note;
+
+    if (r.status === 'notfound') {
+      const exam = !$('examField').hidden && $('exam').selectedOptions[0];
+      const tips = document.createElement('ul');
+      tips.className = 'tips';
+      const items = [
+        r.note ||
+          (exam
+            ? `This board was searched for: ${exam.textContent}. If your result is from a different exam or year, pick that one above.`
+            : 'This board only publishes its most recently announced result.'),
+        'Check the roll number for typos — it must match your admit card exactly.',
+        'If the result was announced only minutes ago, the board may still be updating its system.',
+      ];
+      for (const t of items) {
+        const li = document.createElement('li');
+        li.textContent = t;
+        tips.appendChild(li);
+      }
+      body.appendChild(tips);
+    } else if (r.message) {
+      const p = document.createElement('p');
+      p.textContent = r.message;
+      body.appendChild(p);
+    }
+
+    if (b && (b.resultUrl || b.website)) {
+      const a = document.createElement('a');
+      a.className = 'btn-link official';
+      a.href = b.resultUrl || b.website;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = `Open ${b.name} official result page ↗`;
+      body.appendChild(a);
+    }
     wrap.appendChild(body);
+    return wrap;
   }
-  if (r.status !== 'found') return wrap;
 
   const body = document.createElement('div');
   body.className = 'result-body';
@@ -398,102 +417,5 @@ function renderResult(r) {
   wrap.appendChild(body);
   return wrap;
 }
-
-// ---------- bulk ----------
-$('bulkBtn').addEventListener('click', async () => {
-  const rolls = $('rollList').value.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean);
-  if (!rolls.length) return $('rollList').focus();
-
-  bulkResults = [];
-  stopBulk = false;
-  let bulkStopMessage = null;
-  $('bulkBtn').disabled = true;
-  $('stopBtn').hidden = false;
-  $('csvBtn').hidden = true;
-  $('bulkProgress').hidden = false;
-  $('bulkStatus').hidden = false;
-  $('bulkResults').innerHTML = '';
-
-  const tbl = document.createElement('table');
-  tbl.className = 'res';
-  tbl.innerHTML = '<tr><th>#</th><th>Roll No</th><th>Status</th><th>Name</th><th>Marks</th><th>Grade/Result</th></tr>';
-  $('bulkResults').appendChild(tbl);
-
-  for (let i = 0; i < rolls.length; i++) {
-    if (stopBulk) break;
-    $('bulkStatus').textContent = `Checking: ${rolls[i]} (${i + 1}/${rolls.length})`;
-    let r;
-    try {
-      r = await lookupOne(rolls[i]);
-    } catch (e) {
-      r = { status: 'error', rollNo: rolls[i], message: e.message };
-    }
-    if (r.status === 'badcaptcha') {
-      bulkStopMessage = `Stopped at ${rolls[i]}: ${r.message || 'captcha problem'} — enter the new captcha and press Check All again`;
-      loadCaptcha();
-      stopBulk = true;
-      break;
-    }
-    bulkResults.push(r);
-
-    const tr = document.createElement('tr');
-    const s = r.student || {};
-    const marks = s.obtainedMarks ? (s.obtainedMarks + (s.totalMarks ? ' / ' + s.totalMarks : '')) : '';
-    const cells = [
-      String(i + 1), r.rollNo,
-      r.status === 'found' ? 'Found' : r.status === 'notfound' ? 'Not found' : 'Error',
-      s.name || '', marks, s.grade || s.status || (r.message || ''),
-    ];
-    cells.forEach((c, ci) => {
-      const td = document.createElement('td');
-      if (ci === 2) {
-        const chip = document.createElement('span');
-        chip.className = 'status-chip ' + (r.status === 'found' ? 'found' : r.status === 'notfound' ? 'notfound' : 'error');
-        chip.textContent = c;
-        td.appendChild(chip);
-      } else td.textContent = c;
-      tr.appendChild(td);
-    });
-    tbl.appendChild(tr);
-
-    $('bulkBar').style.width = Math.round(((i + 1) / rolls.length) * 100) + '%';
-    // small delay so we don't hammer the board's server
-    if (i < rolls.length - 1) await new Promise((r2) => setTimeout(r2, 500));
-  }
-
-  $('bulkStatus').textContent = bulkStopMessage
-    ? bulkStopMessage
-    : stopBulk
-      ? `Stopped — checked ${bulkResults.length}/${rolls.length}`
-      : `Done — checked ${bulkResults.length} roll numbers`;
-  $('bulkBtn').disabled = false;
-  $('stopBtn').hidden = true;
-  $('csvBtn').hidden = bulkResults.length === 0;
-});
-
-$('stopBtn').addEventListener('click', () => { stopBulk = true; });
-
-// ---------- CSV export (Excel-friendly, BOM ke saath) ----------
-$('csvBtn').addEventListener('click', () => {
-  const b = currentBoard();
-  const header = ['Roll No', 'Status', 'Name', 'Father Name', 'Group', 'Institute', 'Obtained Marks', 'Total Marks', 'Grade', 'Result/Remarks'];
-  const lines = [header];
-  for (const r of bulkResults) {
-    const s = r.student || {};
-    lines.push([
-      r.rollNo,
-      r.status === 'found' ? 'FOUND' : r.status === 'notfound' ? 'NOT FOUND' : 'ERROR: ' + (r.message || ''),
-      s.name || '', s.fatherName || '', s.group || '', s.institute || '',
-      s.obtainedMarks || '', s.totalMarks || '', s.grade || '', s.status || '',
-    ]);
-  }
-  const csv = lines.map((row) => row.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\r\n');
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `results-${b ? b.id : 'board'}-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-});
 
 init();

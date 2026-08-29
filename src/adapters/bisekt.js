@@ -1,7 +1,7 @@
 // BISE Kohat — bisekt.edu.pk/current_result/ (PHP form, captcha-protected).
 // Same captcha relay as BISE Lahore: user types the code from the board's image.
 const cheerio = require('cheerio');
-const { UA, cleanHtml, extractTables, extractPairs, htmlToText, pickStudentFields } = require('./utils');
+const { UA, cleanHtml, extractTables, splitTables, extractPairs, htmlToText, pickStudentFields } = require('./utils');
 
 const PAGE = 'https://bisekt.edu.pk/current_result/';
 
@@ -112,11 +112,12 @@ async function lookup({ exam, rollNo, captcha, session }) {
     return { status: 'notfound', board: 'bisekt', exam, rollNo };
   }
 
-  const tables = extractTables(html);
-  const pairs = extractPairs(tables, text);
+  const allTables = extractTables(html);
+  const { dataTables } = splitTables(allTables);
+  const pairs = extractPairs(allTables, text);
   const student = pickStudentFields(pairs);
 
-  if (!student.name && tables.every((t) => t.length < 3)) {
+  if (!student.name && dataTables.every((t) => t.length < 3)) {
     return {
       status: 'badcaptcha',
       board: 'bisekt',
@@ -133,7 +134,7 @@ async function lookup({ exam, rollNo, captcha, session }) {
     rollNo,
     student,
     fields: pairs,
-    tables,
+    tables: dataTables,
     rawHtml: cleanHtml(html),
   };
 }

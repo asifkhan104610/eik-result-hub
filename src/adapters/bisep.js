@@ -1,5 +1,5 @@
 // BISE Peshawar — cloud.bisep.edu.pk ka AJAX endpoint (current/latest result)
-const { fetchHtml, cleanHtml, extractTables, extractPairs, htmlToText, pickStudentFields } = require('./utils');
+const { fetchHtml, cleanHtml, extractTables, splitTables, extractPairs, htmlToText, pickStudentFields } = require('./utils');
 
 const BASE = 'https://cloud.bisep.edu.pk/ShowResult.php';
 
@@ -43,8 +43,9 @@ async function lookup({ rollNo }) {
     return { status: 'notfound', board: 'bisep', rollNo };
   }
 
-  const tables = extractTables(html);
-  const pairs = extractPairs(tables, text);
+  const allTables = extractTables(html);
+  const { dataTables } = splitTables(allTables);
+  const pairs = extractPairs(allTables, text);
   const student = pickStudentFields(pairs);
 
   return {
@@ -53,7 +54,7 @@ async function lookup({ rollNo }) {
     rollNo,
     student,
     fields: pairs,
-    tables,
+    tables: dataTables,
     rawHtml: cleanHtml(html),
   };
 }

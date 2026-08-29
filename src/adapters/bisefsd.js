@@ -1,7 +1,7 @@
 // BISE Faisalabad — ASP.NET result pages, no captcha.
 // MatricResults.aspx / InterResults.aspx: pick an exam session, POST the roll number.
 const cheerio = require('cheerio');
-const { UA, cleanHtml, extractTables } = require('./utils');
+const { UA, cleanHtml, extractTables, splitTables } = require('./utils');
 
 const PAGES = {
   matric: { url: 'https://bisefsd.edu.pk/MatricResults.aspx', label: 'Matric' },
@@ -89,7 +89,7 @@ async function lookup({ exam, rollNo }) {
 
   const panel = $$('#ContentPlaceHolder1_Panel1');
   const panelHtml = panel.length ? $$.html(panel) : null;
-  const tables = panelHtml ? extractTables(panelHtml) : [];
+  const { dataTables: tables } = splitTables(panelHtml ? extractTables(panelHtml) : []);
   const totalMatch = $$('#printSection').text().match(/Notification:\s*(\d+)/);
 
   return {

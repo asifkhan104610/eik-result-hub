@@ -16,7 +16,40 @@ const exams = []; // dynamic — getExams() extracts the live list from the site
 // (the PDFs themselves stay downloadable from the stagging host).
 const FALLBACK_GAZETTES = ['/pdf/general_gazette_2026.pdf'];
 
+// BSEK names its gazettes <group>_gazette_<year>.pdf — probing these
+// candidates finds new gazettes even while the homepage blocks us.
+const GROUPS = ['science', 'general', 'commerce', 'humanities', 'technical'];
+
 let listCache = { at: 0, list: null };
+
+// The board links gazettes on its site before uploading the file, so every
+// candidate is confirmed to be a real PDF before it reaches the dropdown.
+async function isRealPdf(path) {
+  for (const host of [workingHost, ...HOSTS.filter((h) => h !== workingHost)]) {
+    try {
+      const res = await fetch(new URL(path, host).href, {
+        headers: { 'User-Agent': UA, Range: 'bytes=0-3' },
+      });
+      res.body && res.body.cancel && res.body.cancel().catch(() => {});
+      // missing files come back as an HTML error page, so the content type —
+      // not the status — decides whether a gazette is really there
+      const type = res.headers.get('content-type') || '';
+      if ((res.ok || res.status === 206) && /pdf/i.test(type)) return true;
+    } catch {
+      // host unreachable — try the next one
+    }
+  }
+  return false;
+}
+
+function candidatePaths() {
+  const year = new Date().getFullYear();
+  const paths = [];
+  for (const group of GROUPS) {
+    for (const y of [year, year - 1]) paths.push(`/pdf/${group}_gazette_${y}.pdf`);
+  }
+  return paths;
+}
 
 async function fetchHome() {
   let lastErr;
@@ -35,7 +68,9 @@ async function fetchHome() {
 async function getExams() {
   if (listCache.list && Date.now() - listCache.at < 10 * 60 * 1000) return listCache.list;
 
-  let list = [];
+  // Candidates come from the site's own bundle, from guessing the board's
+  // <group>_gazette_<year>.pdf naming, and from the known-good fallback list.
+  const candidates = new Set();
   try {
     const home = await fetchHome();
     const bundleMatch = home.match(/src="(\/assets\/[^"]+\.js)"/);
@@ -43,21 +78,27 @@ async function getExams() {
       const res = await fetch(new URL(bundleMatch[1], workingHost).href, { headers: { 'User-Agent': UA } });
       if (res.ok) {
         const js = await res.text();
-        const seen = new Set();
-        for (const m of js.matchAll(/"(\/pdf\/[^"]*gaz+et+e[^"]*\.pdf)"/gi)) {
-          const href = m[1];
-          if (seen.has(href)) continue;
-          seen.add(href);
-          list.push({ id: idFor(href), label: prettyName(href) });
-        }
+        for (const m of js.matchAll(/"(\/pdf\/[^"]*gaz+et+e[^"]*\.pdf)"/gi)) candidates.add(m[1]);
       }
     }
   } catch {
-    // discovery blocked — fall through to the known list
+    // discovery blocked — the probe and fallback list still apply
   }
-  if (!list.length) {
-    list = FALLBACK_GAZETTES.map((href) => ({ id: idFor(href), label: prettyName(href) }));
-  }
+  for (const p of candidatePaths()) candidates.add(p);
+  for (const p of FALLBACK_GAZETTES) candidates.add(p);
+
+  const checked = await Promise.all(
+    [...candidates].map(async (href) => ((await isRealPdf(href)) ? href : null))
+  );
+  const list = checked
+    .filter(Boolean)
+    .map((href) => ({ id: idFor(href), label: prettyName(href) }));
+
+  // newest year first so "Latest Released Results" and the default
+  // selection pick up a newly announced gazette automatically
+  const yearOf = (label) => Math.max(...(label.match(/(19|20)\d{2}/g) || ['0']).map(Number));
+  list.sort((a, z) => yearOf(z.label) - yearOf(a.label));
+
   listCache = { at: Date.now(), list };
   return list;
 }

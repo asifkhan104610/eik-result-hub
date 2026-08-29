@@ -1,5 +1,5 @@
 // Federal Board (FBISE) — portal.fbise.edu.pk ka public result.php endpoint
-const { fetchHtml, cleanHtml, extractTables, extractPairs, htmlToText, pickStudentFields } = require('./utils');
+const { fetchHtml, cleanHtml, extractTables, splitTables, extractPairs, htmlToText, pickStudentFields } = require('./utils');
 
 const BASE = 'https://portal.fbise.edu.pk/fbise-conduct/result/result.php';
 
@@ -54,8 +54,9 @@ async function lookup({ exam, rollNo }) {
   const html = await fetchHtml(url);
 
   const text = htmlToText(html);
-  const tables = extractTables(html);
-  const pairs = extractPairs(tables, text);
+  const allTables = extractTables(html);
+  const { dataTables } = splitTables(allTables);
+  const pairs = extractPairs(allTables, text);
   const student = pickStudentFields(pairs);
 
   // Khaali card = sirf "RESULT CARD - <roll>" heading, koi aur data nahi
@@ -71,7 +72,7 @@ async function lookup({ exam, rollNo }) {
     rollNo,
     student,
     fields: pairs,
-    tables,
+    tables: dataTables,
     rawHtml: cleanHtml(html),
   };
 }

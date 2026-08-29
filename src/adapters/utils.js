@@ -33,10 +33,12 @@ function cleanHtml(html) {
   return (body.length ? body.html() : $.html()) || '';
 }
 
-// Har <table> ko rows[cells[]] mein nikalta hai
+// Every <table> as rows[cells[]]. Nested-table wrapper rows produce one huge
+// merged cell, so those are dropped and duplicate tables collapsed.
 function extractTables(html) {
   const $ = cheerio.load(html);
   const tables = [];
+  const seen = new Set();
   $('table').each((_, t) => {
     const rows = [];
     $(t)
@@ -48,24 +50,73 @@ function extractTables(html) {
           .each((_, td) => {
             cells.push($(td).text().replace(/\s+/g, ' ').trim());
           });
+        // a cell holding a whole nested table is layout noise, not data
+        if (cells.some((c) => c.length > 300)) return;
         if (cells.some((c) => c)) rows.push(cells);
       });
-    if (rows.length) tables.push(rows);
+    if (!rows.length) return;
+    const sig = JSON.stringify(rows);
+    if (seen.has(sig)) return;
+    seen.add(sig);
+    tables.push(rows);
   });
   return tables;
 }
 
-// "Label: Value" ya 2-column table rows se key/value pairs (best effort)
+function labelLike(s) {
+  return Boolean(s) && s.length <= 40 && /[A-Za-z]/.test(s) && !/^[\d.,%\/-]+$/.test(s);
+}
+
+// A label/value row alternates label,value (2, 4 or 6 cells) with a real label
+// in every even position. Data rows fail this because they put numbers there.
+function isPairRow(cells) {
+  if (!cells.length || cells.length % 2 !== 0 || cells.length > 6) return false;
+  for (let i = 0; i < cells.length; i += 2) {
+    if (!labelLike(cells[i])) return false;
+  }
+  return true;
+}
+
+// Many boards put the student's details and the subject marks in ONE table, so
+// a table is split into its leading label/value rows and the data rows below.
+// Two leading rows are required, otherwise a data table whose header happens to
+// be two cells ("Subject | Marks Obtained") would be misread as student details.
+function splitTableRows(rows) {
+  let i = 0;
+  while (i < rows.length && isPairRow(rows[i])) i++;
+  if (i < 2) return { pairRows: [], dataRows: rows };
+  // The last "pair" row is really the data table's header when it lines up with
+  // the data rows below it (e.g. "S.# | Subject | Theory | Practical").
+  if (i < rows.length && rows[i - 1].length === rows[i].length && rows[i - 1].length > 2) i--;
+  return { pairRows: rows.slice(0, i), dataRows: rows.slice(i) };
+}
+
+function isPairTable(rows) {
+  return splitTableRows(rows).pairRows.length > 0;
+}
+
+// Splits tables into label/value rows and real data tables (subject marks etc.)
+function splitTables(tables) {
+  const pairTables = [];
+  const dataTables = [];
+  for (const rows of tables) {
+    const { pairRows, dataRows } = splitTableRows(rows);
+    if (pairRows.length) pairTables.push(pairRows);
+    if (dataRows.length) dataTables.push(dataRows);
+  }
+  return { pairTables, dataTables };
+}
+
+// Key/value pairs from label/value rows plus "Label: Value" text (best effort)
 function extractPairs(tables, text) {
   const pairs = {};
   for (const rows of tables) {
-    for (const cells of rows) {
-      // only true label/value rows — wider rows are data tables, and pairing
-      // their header cells produces junk like "Sr.#: Subject"
-      if (cells.length !== 2) continue;
-      const k = cells[0].replace(/[:：]\s*$/, '').trim();
-      const v = cells[1].trim();
-      if (k && v && k.length <= 40 && !/^\d+$/.test(k)) pairs[k] = v;
+    for (const cells of splitTableRows(rows).pairRows) {
+      for (let i = 0; i + 1 < cells.length; i += 2) {
+        const k = cells[i].replace(/[:：]\s*$/, '').trim();
+        const v = cells[i + 1].trim();
+        if (k && v) pairs[k] = v;
+      }
     }
   }
   const re = /([A-Za-z][A-Za-z .\/()']{2,35})\s*[:：]\s*([^\n:：]{1,80})/g;
@@ -116,4 +167,7 @@ function pickStudentFields(pairs) {
   };
 }
 
-module.exports = { UA, fetchHtml, cleanHtml, extractTables, extractPairs, htmlToText, pickStudentFields };
+module.exports = {
+  UA, fetchHtml, cleanHtml, extractTables, splitTables, isPairTable,
+  extractPairs, htmlToText, pickStudentFields,
+};

@@ -1,6 +1,8 @@
-// BISE Mardan — result.bisemdn.edu.pk (form-based POST, exam codes homepage se dynamically)
+// BISE Mardan — result.bisemdn.edu.pk
+// The visible form is decorative: the page posts to incl/sql_load.php over AJAX,
+// so we call that endpoint directly with the form's hidden ExamCode/Year/Session.
 const cheerio = require('cheerio');
-const { fetchHtml, cleanHtml, extractTables, extractPairs, htmlToText, pickStudentFields } = require('./utils');
+const { fetchHtml, cleanHtml, extractTables, splitTables, extractPairs, htmlToText, pickStudentFields } = require('./utils');
 
 const BASE = 'https://result.bisemdn.edu.pk/';
 
@@ -70,24 +72,32 @@ async function lookup({ exam, rollNo }) {
     forms[0];
 
   const params = new URLSearchParams({ ...form.hidden, RollNo: rollNo });
-  const url = new URL(form.action, BASE).href;
+  // form.action is like "?mode=GetResult&module=ssc" — the AJAX call posts the
+  // same query string to incl/sql_load.php, which returns just the result card
+  const query = (form.action.match(/\?.*$/) || [''])[0];
+  const url = new URL('incl/sql_load.php' + query, BASE).href;
   const html = await fetchHtml(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Referer: BASE },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-Requested-With': 'XMLHttpRequest',
+      Referer: BASE,
+    },
     body: params.toString(),
   });
 
   const text = htmlToText(html);
-  if (/no record|not found|invalid roll|record nahi/i.test(text)) {
+  if (/no student record|no record|not found|invalid roll/i.test(text)) {
     return { status: 'notfound', board: 'bisemdn', exam, rollNo };
   }
 
-  const tables = extractTables(html);
-  const pairs = extractPairs(tables, text);
+  const allTables = extractTables(html);
+  const { dataTables } = splitTables(allTables);
+  const pairs = extractPairs(allTables, text);
   const student = pickStudentFields(pairs);
 
   // Agar koi table/pairs hi nahi mile to record nahi samjho
-  if (!tables.length && !Object.keys(pairs).length) {
+  if (!dataTables.length && !Object.keys(pairs).length) {
     return { status: 'notfound', board: 'bisemdn', exam, rollNo };
   }
 
@@ -98,7 +108,7 @@ async function lookup({ exam, rollNo }) {
     rollNo,
     student,
     fields: pairs,
-    tables,
+    tables: dataTables,
     rawHtml: cleanHtml(html),
   };
 }

@@ -2,7 +2,7 @@
 // Captcha relay: the server fetches the board's captcha image and shows it to
 // the user; the user types it and the lookup is submitted with their answer.
 const cheerio = require('cheerio');
-const { UA, cleanHtml, extractTables, extractPairs, htmlToText, pickStudentFields } = require('./utils');
+const { UA, cleanHtml, extractTables, splitTables, extractPairs, htmlToText, pickStudentFields } = require('./utils');
 
 const BASE = 'http://result.biselahore.com/';
 
@@ -117,13 +117,14 @@ async function lookup({ exam, rollNo, captcha, session }) {
     return { status: 'notfound', board: 'biselahore', exam, rollNo };
   }
 
-  const tables = extractTables(html);
-  const pairs = extractPairs(tables, text);
+  const allTables = extractTables(html);
+  const { dataTables } = splitTables(allTables);
+  const pairs = extractPairs(allTables, text);
   const student = pickStudentFields(pairs);
 
   // If the page still looks like the blank search form, the captcha was
   // probably rejected silently
-  if (!student.name && tables.every((t) => t.length < 3)) {
+  if (!student.name && dataTables.every((t) => t.length < 3)) {
     return {
       status: 'badcaptcha',
       board: 'biselahore',
@@ -140,7 +141,7 @@ async function lookup({ exam, rollNo, captcha, session }) {
     rollNo,
     student,
     fields: pairs,
-    tables,
+    tables: dataTables,
     rawHtml: cleanHtml(html),
   };
 }
