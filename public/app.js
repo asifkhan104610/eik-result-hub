@@ -49,7 +49,7 @@ async function init() {
 
   // default to the board with the most recently announced result
   const newest = BOARDS.filter((b) => b.supported && b.exams.length)
-    .sort((a, z) => latestYear(z.exams[0].label) - latestYear(a.exams[0].label))[0];
+    .sort((a, z) => announcedRank(z.exams[0]) - announcedRank(a.exams[0]))[0];
   if (newest) sel.value = newest.id;
 
   onBoardChange();
@@ -59,18 +59,32 @@ async function init() {
 }
 
 // ---------- latest / upcoming / news sections ----------
-// Boards do not publish announcement dates in machine-readable form, so we
-// sort by the most recent exam year in the label (newest first).
+// Some boards print the announcement date next to each result link; where they
+// do not, the exam year in the label is the best available ordering signal.
 function latestYear(label) {
   const years = (label.match(/(19|20)\d{2}/g) || ['0']).map(Number);
   return Math.max(...years);
+}
+
+// Boards that publish an announcement date are ranked by it; the rest fall back
+// to the exam year, so a dated 2026 result still outranks an undated 2026 one.
+function announcedRank(exam) {
+  if (!exam) return 0;
+  if (exam.announced) return new Date(exam.announced + 'T00:00:00Z').getTime();
+  return Date.UTC(latestYear(exam.label), 0, 1) - 1;
+}
+
+function formatDate(iso) {
+  return new Date(iso + 'T00:00:00Z').toLocaleDateString('en-PK', {
+    day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+  });
 }
 
 function renderLatestResults() {
   const grid = $('latestGrid');
   const items = BOARDS.filter((b) => b.supported && b.exams.length)
     .map((b) => ({ board: b, exam: b.exams[0] }))
-    .sort((a, z) => latestYear(z.exam.label) - latestYear(a.exam.label));
+    .sort((a, z) => announcedRank(z.exam) - announcedRank(a.exam));
   if (!items.length) return;
   for (const { board: b, exam } of items) {
     const card = document.createElement('button');
@@ -85,6 +99,13 @@ function renderLatestResults() {
     body.innerHTML = '<div class="mc-board"></div><div class="mc-exam"></div>';
     body.firstElementChild.textContent = b.name;
     body.lastElementChild.textContent = exam.label;
+    // show the board's own announcement date when it publishes one
+    if (exam.announced) {
+      const d = document.createElement('div');
+      d.className = 'mc-date';
+      d.textContent = 'Announced ' + formatDate(exam.announced);
+      body.appendChild(d);
+    }
     const go = document.createElement('span');
     go.className = 'mc-go';
     go.textContent = '→';
@@ -183,7 +204,8 @@ function onBoardChange() {
     for (const e of b.exams) {
       const opt = document.createElement('option');
       opt.value = e.id;
-      opt.textContent = e.label;
+      // the announcement date tells students which result they are opening
+      opt.textContent = e.announced ? `${e.label} — announced ${formatDate(e.announced)}` : e.label;
       examSel.appendChild(opt);
     }
     examField.hidden = false;

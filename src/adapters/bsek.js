@@ -20,6 +20,9 @@ const FALLBACK_GAZETTES = ['/pdf/general_gazette_2026.pdf'];
 // candidates finds new gazettes even while the homepage blocks us.
 const GROUPS = ['science', 'general', 'commerce', 'humanities', 'technical'];
 
+// Sample/"students week"/notice PDFs live in the same folder as the gazettes
+const NOT_A_RESULT = /sample|studentsweek|students week|with-?held|ufm|notice|form|schedule|challan|syllabus|graph|line/i;
+
 let listCache = { at: 0, list: null };
 
 // The board links gazettes on its site before uploading the file, so every
@@ -78,7 +81,13 @@ async function getExams() {
       const res = await fetch(new URL(bundleMatch[1], workingHost).href, { headers: { 'User-Agent': UA } });
       if (res.ok) {
         const js = await res.text();
-        for (const m of js.matchAll(/"(\/pdf\/[^"]*gaz+et+e[^"]*\.pdf)"/gi)) candidates.add(m[1]);
+        // Take every result PDF, not only ones named "gazette" — boards rename
+        // these freely, and a keyword filter silently hides whole groups.
+        for (const m of js.matchAll(/"(\/pdf\/[^"]+\.pdf)"/gi)) {
+          const href = m[1];
+          if (NOT_A_RESULT.test(href)) continue;
+          if (/gaz+et+e|result|group|science|general|commerce|humanities/i.test(href)) candidates.add(href);
+        }
       }
     }
   } catch {
