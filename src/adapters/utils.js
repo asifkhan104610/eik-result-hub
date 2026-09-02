@@ -57,32 +57,54 @@ function cleanHtml(html) {
 
 // Every <table> as rows[cells[]]. Nested-table wrapper rows produce one huge
 // merged cell, so those are dropped and duplicate tables collapsed.
+const norm = (s) => s.replace(/\s+/g, ' ').trim();
+
+// A nested table makes its wrapper cell repeat everything the inner cells hold.
+// That duplicate is layout noise, so it is dropped when the rest of the row
+// already says the same thing.
+function dropWrapperCells(cells) {
+  if (cells.length < 3) return cells;
+  const joined = norm(cells.slice(1).join(' '));
+  if (joined && norm(cells[0]) === joined) return cells.slice(1);
+  return cells;
+}
+
 function extractTables(html) {
   const $ = cheerio.load(html);
   const tables = [];
-  const seen = new Set();
   $('table').each((_, t) => {
     const rows = [];
     $(t)
       .find('tr')
       .each((_, tr) => {
-        const cells = [];
+        let cells = [];
         $(tr)
           .find('th, td')
           .each((_, td) => {
-            cells.push($(td).text().replace(/\s+/g, ' ').trim());
+            cells.push(norm($(td).text()));
           });
         // a cell holding a whole nested table is layout noise, not data
         if (cells.some((c) => c.length > 300)) return;
+        cells = dropWrapperCells(cells);
         if (cells.some((c) => c)) rows.push(cells);
       });
-    if (!rows.length) return;
-    const sig = JSON.stringify(rows);
-    if (seen.has(sig)) return;
-    seen.add(sig);
-    tables.push(rows);
+    // A lone single-cell row is a caption ("DETAIL OF MARKS OBTAINED..."), not
+    // data. Left in place it would break the label/value scan below it.
+    const body = rows.filter((cells) => cells.length > 1);
+    if (body.length) tables.push(body);
+    else if (rows.length) tables.push(rows);
   });
-  return tables;
+
+  // Outer tables repeat their inner tables' rows, so a table whose rows all
+  // appear inside a bigger one is dropped rather than shown twice.
+  const sigs = tables.map((rows) => rows.map((cells) => JSON.stringify(cells)));
+  return tables.filter((rows, i) =>
+    !sigs.some((other, j) => {
+      if (j === i || other.length < sigs[i].length) return false;
+      if (other.length === sigs[i].length && j > i) return false; // keep the first of equals
+      return sigs[i].every((row) => other.includes(row));
+    })
+  );
 }
 
 function labelLike(s) {
@@ -91,8 +113,11 @@ function labelLike(s) {
 
 // A label/value row alternates label,value (2, 4 or 6 cells) with a real label
 // in every even position. Data rows fail this because they put numbers there.
+// Some boards lay a whole row of details out as one long label,value,label,value
+// strip, so width is not capped tightly; requiring a real label in every even
+// position is what keeps data rows out, since those put numbers there.
 function isPairRow(cells) {
-  if (!cells.length || cells.length % 2 !== 0 || cells.length > 6) return false;
+  if (!cells.length || cells.length % 2 !== 0 || cells.length > 16) return false;
   for (let i = 0; i < cells.length; i += 2) {
     if (!labelLike(cells[i])) return false;
   }

@@ -24,16 +24,13 @@ Then open **http://localhost:3000** in your browser.
 ## Features
 
 - Directory of **27 boards** (Federal, KP, Punjab, Sindh, Balochistan, AJK, GB)
-- **Direct lookup** (enter a roll number, see the result on screen):
+- **Direct lookup** (enter a roll number, see the result on screen) — 14 boards:
   - Federal Board (FBISE) — SSC/HSSC, annual/tech, all classes
-  - BISE Peshawar — latest announced result
-  - BISE Mardan — SSC/HSSC latest
-  - BIE Karachi (Inter) — looked up from result gazette PDFs (select a group, enter roll number; grace marks are shown too)
-  - BSE Karachi (Matric) — looked up from result gazette PDFs (gazette list is discovered automatically from the board's site)
-  - BISE Faisalabad — Matric + Inter, all sessions back to 2013
-- **Captcha relay** for captcha-protected boards (BISE Lahore, BISE Kohat): the app shows the board's captcha image, you type the code, and the lookup goes through. In bulk mode one captcha is reused until the board rejects it.
-- **Bulk mode** — paste a list of roll numbers, get everyone's results with a progress bar
-- **Excel/CSV download** — export of bulk results (opens directly in Excel)
+  - BISE Peshawar, Mardan, Abbottabad, D.I. Khan — KP
+  - BISE Lahore, Rawalpindi, Gujranwala, Faisalabad, Sahiwal, D.G. Khan — Punjab
+  - BSE Karachi (Matric) and BIE Karachi (Inter) — looked up from result gazette PDFs
+- **Captcha relay** for captcha-protected boards (BISE Lahore, BISE Kohat): the app shows the board's captcha image, you type the code, and the lookup goes through.
+- `npm run check` — health check over every adapter; warns when a board starts offering fewer results than it has before, which is what a silently broken discovery filter looks like.
 - Remaining boards get a direct link to their official result page
 
 ## Adding a new board

@@ -47,7 +47,7 @@ const BOARDS = [
     name: 'BISE Abbottabad',
     province: 'Khyber Pakhtunkhwa',
     website: 'https://www.biseatd.edu.pk/',
-    resultUrl: 'https://www.biseatd.edu.pk/',
+    resultUrl: 'https://www.biseatd.edu.pk/all_results.php',
   },
   {
     id: 'bisebannu',
@@ -85,7 +85,7 @@ const BOARDS = [
     name: 'BISE Rawalpindi',
     province: 'Punjab',
     website: 'https://www.biserawalpindi.edu.pk/',
-    resultUrl: 'https://www.biserawalpindi.edu.pk/',
+    resultUrl: 'https://biserwp.edu.pk/',
   },
   {
     id: 'bisegrw',
@@ -134,7 +134,7 @@ const BOARDS = [
     name: 'BISE Sahiwal',
     province: 'Punjab',
     website: 'https://www.bisesahiwal.edu.pk/',
-    resultUrl: 'https://www.bisesahiwal.edu.pk/allresult/',
+    resultUrl: 'https://result.bisesahiwal.edu.pk/',
   },
 
   // ---------- Sindh ----------
