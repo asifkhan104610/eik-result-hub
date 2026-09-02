@@ -69,7 +69,7 @@ async function lookup({ exam, rollNo }) {
 
   const allTables = extractTables(html);
   const { dataTables } = splitTables(allTables);
-  const pairs = extractPairs(allTables, text);
+  const pairs = extractPairs(allTables, text, html);
   const student = pickStudentFields(pairs);
 
   if (!student.name && !dataTables.length) {

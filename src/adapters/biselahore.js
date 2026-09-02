@@ -119,7 +119,7 @@ async function lookup({ exam, rollNo, captcha, session }) {
 
   const allTables = extractTables(html);
   const { dataTables } = splitTables(allTables);
-  const pairs = extractPairs(allTables, text);
+  const pairs = extractPairs(allTables, text, html);
   const student = pickStudentFields(pairs);
 
   // If the page still looks like the blank search form, the captcha was

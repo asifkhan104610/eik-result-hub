@@ -12,4 +12,6 @@ module.exports = {
   biselahore: require('./biselahore'),
   bisekt: require('./bisekt'),
   bisedik: require('./bisedik'),
+  bisegrw: require('./bisegrw'),
+  bisedgkhan: require('./bisedgkhan'),
 };

@@ -92,7 +92,7 @@ const BOARDS = [
     name: 'BISE Gujranwala',
     province: 'Punjab',
     website: 'https://www.bisegrw.edu.pk/',
-    resultUrl: 'https://www.bisegrw.edu.pk/',
+    resultUrl: 'https://result.bisegrw.edu.pk/',
   },
   {
     id: 'bisefsd',
@@ -126,8 +126,8 @@ const BOARDS = [
     id: 'bisedgkhan',
     name: 'BISE D.G. Khan',
     province: 'Punjab',
-    website: 'http://www.bisedgkhan.edu.pk/',
-    resultUrl: 'http://www.bisedgkhan.edu.pk/',
+    website: 'https://bisedgkhan.edu.pk/',
+    resultUrl: 'https://bisedgkhan.edu.pk/',
   },
   {
     id: 'bisesahiwal',
