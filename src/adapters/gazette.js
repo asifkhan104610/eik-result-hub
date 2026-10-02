@@ -6,6 +6,33 @@ const { UA } = require('./utils');
 const pdfCache = new Map(); // url -> { at, text }
 const PDF_TTL = 12 * 60 * 60 * 1000;
 
+// pdf-parse's default text extraction reads these multi-column gazette grids out of
+// visual order, so headers ("6 Papers") and the roll rows beneath them get interleaved
+// wrongly. We render each page by sorting the text items top-to-bottom then left-to-right
+// (their real reading order), which keeps every "N Papers" header directly above its rows.
+function renderPageInOrder(pageData) {
+  return pageData
+    .getTextContent({ normalizeWhitespace: true, disableCombineTextItems: false })
+    .then((tc) => {
+      const items = tc.items
+        .filter((it) => it.str && it.str.trim() !== '')
+        .map((it) => ({ x: it.transform[4], y: it.transform[5], s: it.str }));
+      items.sort((a, b) => b.y - a.y || a.x - b.x); // top first, then left
+      const lines = [];
+      let cur = null;
+      for (const it of items) {
+        if (!cur || Math.abs(it.y - cur.y) > 3) {
+          cur = { y: it.y, parts: [] };
+          lines.push(cur);
+        }
+        cur.parts.push(it);
+      }
+      return lines
+        .map((ln) => ln.parts.sort((a, b) => a.x - b.x).map((p) => p.s).join(' '))
+        .join('\n');
+    });
+}
+
 async function getPdfText(url) {
   const hit = pdfCache.get(url);
   if (hit && Date.now() - hit.at < PDF_TTL) return hit.text;
@@ -16,7 +43,7 @@ async function getPdfText(url) {
     const res = await fetch(url, { headers: { 'User-Agent': UA }, signal: controller.signal });
     if (!res.ok) throw new Error(`Could not download gazette PDF (HTTP ${res.status})`);
     const buf = Buffer.from(await res.arrayBuffer());
-    const parsed = await pdfParse(buf);
+    const parsed = await pdfParse(buf, { pagerender: renderPageInOrder });
     pdfCache.set(url, { at: Date.now(), text: parsed.text });
     return parsed.text;
   } finally {
@@ -29,6 +56,60 @@ function searchGazette({ text, board, exam, rollNo, gazetteName }) {
   // ROLLNO(MARKS), ROLLNO(MARKS+ GRACE), ROLLNO(MARKS^ N)
   const re = new RegExp(rollNo + '\\s*\\(\\s*(\\d+)\\s*(?:([+^])\\s*(\\d+))?\\s*\\)');
   const m = re.exec(text);
+
+  // "Papers-cleared" gazettes (BIEK Part-I / Class XI, and some annual gazettes):
+  // candidates are grouped under "6 Papers" / "5 Papers" / … / "1 Paper" headers, where
+  // the number is HOW MANY PAPERS the candidate CLEARED. Being listed is NOT a full pass —
+  // only clearing ALL papers is a pass; the rest cleared only part and must reappear in the
+  // remaining papers. (Previously everyone with marks was shown as "PASS — listed", which
+  // wrongly passed every partial candidate.)
+  const paperHeaders = [];
+  {
+    const hre = /(?:^|\n)[^\S\n]*(\d{1,2})\s*Papers?\b/gi;
+    let hm;
+    while ((hm = hre.exec(text)) !== null) paperHeaders.push({ index: hm.index, n: parseInt(hm[1], 10) });
+  }
+  const papersFormat = paperHeaders.length >= 2;
+
+  if (m && papersFormat) {
+    const base = parseInt(m[1], 10);
+    const extra = m[3] ? parseInt(m[3], 10) : 0;
+    const total = m[2] === '+' ? base + extra : base;
+    const marksLabel = m[2] === '+' ? `${base} + ${extra} (grace) = ${total}` : String(total);
+
+    const maxPapers = Math.max(...paperHeaders.map((h) => h.n));
+    let cleared = maxPapers; // nearest "N Papers" header before this roll = papers cleared
+    for (const h of paperHeaders) {
+      if (h.index <= m.index) cleared = h.n;
+      else break;
+    }
+    const failed = Math.max(0, maxPapers - cleared);
+    const fullPass = cleared >= maxPapers;
+    const result = fullPass
+      ? `PASS — promoted (cleared all ${maxPapers} papers)`
+      : `NOT PROMOTED — cleared only ${cleared} of ${maxPapers} papers; must reappear in ${failed} paper${failed === 1 ? '' : 's'}`;
+
+    return {
+      status: 'found',
+      board,
+      exam,
+      rollNo,
+      student: {
+        rollNo,
+        obtainedMarks: String(total),
+        status: fullPass ? 'PASS (promoted)' : `FAIL — cleared ${cleared} of ${maxPapers} papers`,
+      },
+      fields: {
+        'Roll No': rollNo,
+        Marks: marksLabel,
+        'Papers cleared': `${cleared} of ${maxPapers}`,
+        Result: result,
+        Gazette: gazetteName,
+      },
+      tables: [],
+      rawHtml: null,
+    };
+  }
 
   if (m) {
     const base = parseInt(m[1], 10);
